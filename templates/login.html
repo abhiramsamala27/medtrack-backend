@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - MedTrack</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #008080;
+            --background: #f8fafc;
+            --white: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .auth-card {
+            background: var(--white);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        p {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <h1 id="auth-title">💊 MedTrack</h1>
+        <p id="auth-subtitle">Login to your health dashboard</p>
+        
+        <form id="auth-form">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit" id="auth-btn" class="btn">Launch Dashboard</button>
+        </form>
+        
+        <div style="margin-top: 2rem;">
+            <p id="toggle-text" style="font-size: 0.9rem; cursor: pointer; color: var(--primary); font-weight: 600;" onclick="toggleAuthMode()">Don't have an account? Register</p>
+            <p style="font-size: 0.8rem; margin-top: 1rem;">Demo: <strong>demo / password</strong></p>
+        </div>
+    </div>
+
+    <script>
+        let isLogin = true;
+
+        function toggleAuthMode() {
+            isLogin = !isLogin;
+            const title = document.getElementById('auth-title');
+            const subtitle = document.getElementById('auth-subtitle');
+            const btn = document.getElementById('auth-btn');
+            const toggleText = document.getElementById('toggle-text');
+
+            if (isLogin) {
+                title.textContent = "💊 MedTrack";
+                subtitle.textContent = "Login to your health dashboard";
+                btn.textContent = "Launch Dashboard";
+                toggleText.textContent = "Don't have an account? Register";
+            } else {
+                title.textContent = "✨ Join MedTrack";
+                subtitle.textContent = "Start your adherence journey today";
+                btn.textContent = "Create Account";
+                toggleText.textContent = "Already have an account? Login";
+            }
+        }
+
+        document.getElementById('auth-form').onsubmit = (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const endpoint = isLogin ? '/login' : '/register';
+            const data = {username, password};
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    window.location.href = data.redirect || '/dashboard';
+                } else {
+                    alert(data.message || 'Authentication failed');
+                }
+            });
+        };
+    </script>
+</body>
+</html>

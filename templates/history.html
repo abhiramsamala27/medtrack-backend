@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    .report-grid {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 2.5rem;
+        align-items: start;
+    }
+
+    .weekly-breakdown {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .day-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.25rem 1.5rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .day-row:hover { 
+        background: var(--card-secondary); 
+        transform: translateX(4px);
+    }
+
+    .day-info { display: flex; align-items: center; gap: 1rem; }
+    .day-name { font-weight: 800; font-size: 1.1rem; min-width: 50px; }
+    .day-date { color: var(--text-muted); font-size: 0.85rem; }
+
+    .day-stats { display: flex; gap: 0.5rem; }
+    .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--border);
+    }
+    .dot-taken { background: var(--success); box-shadow: 0 0 12px rgba(34, 197, 94, 0.4); }
+    .dot-missed { background: var(--danger); box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
+    .dot-pending { background: var(--text-muted); }
+    
+    .progress-track {
+        background: var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--primary);
+        border-radius: 3px;
+        transition: width 0.6s ease;
+    }
+
+    .summary-card {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .summary-val {
+        font-size: 3rem;
+        font-weight: 800;
+        color: var(--primary);
+        line-height: 1;
+        margin-top: 1rem;
+    }
+
+    .history-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 0.75rem;
+    }
+
+    .history-table th {
+        text-align: left;
+        padding: 1rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.1em;
+    }
+
+    .history-table tr td {
+        padding: 1.25rem 1rem;
+        background: var(--card-bg);
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .history-table tr td:first-child { border-left: 1px solid var(--border); border-radius: 1rem 0 0 1rem; }
+    .history-table tr td:last-child { border-right: 1px solid var(--border); border-radius: 0 1rem 1rem 0; }
+
+    .status-pill {
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+    .status-taken { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+    .status-missed { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+    @media (max-width: 900px) {
+        .report-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-grid">
+    <div>
+        <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+            <i data-lucide="bar-chart-3"></i>
+            Weekly Adherence Breakdown
+        </h2>
+        <div id="weekly-list" class="weekly-breakdown">
+            <div class="day-row" style="justify-content: center; color: var(--text-muted);">
+                Analyzing your data...
+            </div>
+        </div>
+
+        <h2 style="margin: 3rem 0 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+            <i data-lucide="history"></i>
+            Recent Activity
+        </h2>
+        <div style="overflow-x: auto;">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Medication</th>
+                        <th>Scheduled</th>
+                        <th>Actual</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="history-list">
+                    <!-- History injected here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="card summary-card" style="margin-bottom: 1.5rem;">
+            <i data-lucide="award" size="40" style="color: var(--primary);"></i>
+            <h3 style="margin-top: 1rem;">Protocol Adherence</h3>
+            <div class="summary-val" id="total-rate">0%</div>
+            <p style="color: var(--text-muted); margin-top: 0.5rem;">Global performance</p>
+        </div>
+
+        <div class="card" style="padding: 1.5rem;">
+            <h4 style="margin-bottom: 1rem; font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted);">Quick Stats</h4>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Total Taken</span>
+                    <b style="color: #10b981;" id="count-taken">0</b>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Total Missed</span>
+                    <b style="color: #ef4444;" id="count-missed">0</b>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadHistory() {
+        fetch('/api/history')
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('history-list');
+                list.innerHTML = '';
+                
+                let taken = 0;
+                let missed = 0;
+
+                data.forEach(e => {
+                    if (e.status === 'TAKEN') taken++;
+                    if (e.status === 'MISSED') missed++;
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'animate-fade-in';
+                    tr.innerHTML = `
+                        <td><b>${e.med_name}</b></td>
+                        <td>${e.scheduled_time}</td>
+                        <td>${e.taken_time || '-'}</td>
+                        <td>
+                            <span class="status-pill status-${e.status.toLowerCase()}">${e.status}</span>
+                        </td>
+                    `;
+                    list.appendChild(tr);
+                });
+
+                document.getElementById('count-taken').textContent = taken;
+                document.getElementById('count-missed').textContent = missed;
+                const total = taken + missed;
+                document.getElementById('total-rate').textContent = (total > 0 ? Math.round(taken/total*100) : 0) + '%';
+            });
+    }
+
+    function loadWeeklyReport() {
+        fetch('/api/report/weekly')
+            .then(res => res.json())
+            .then(days => {
+                const list = document.getElementById('weekly-list');
+                list.innerHTML = '';
+                
+                days.forEach(day => {
+                    const row = document.createElement('div');
+                    row.className = 'day-row animate-fade-in';
+                    row.innerHTML = `
+                        <div class="day-info">
+                            <span class="day-name">${day.name}</span>
+                            <span class="day-date">${day.date}</span>
+                        </div>
+                        <div style="flex: 1; text-align: center;">
+                            <div style="font-weight: 700; color: var(--primary);">${day.adherence}%</div>
+                            <div class="progress-track" style="margin: 0.25rem auto; max-width: 100px; height: 6px;">
+                                <div class="progress-fill" style="width: ${day.adherence}%;"></div>
+                            </div>
+                        </div>
+                        <div class="day-stats">
+                            ${day.events.map(e => `
+                                <div class="status-dot dot-${e.status.toLowerCase()}" title="${e.med_name}"></div>
+                            `).join('')}
+                        </div>
+                    `;
+                    list.appendChild(row);
+                });
+                lucide.createIcons();
+            });
+    }
+
+    loadHistory();
+    loadWeeklyReport();
+</script>
+{% endblock %}

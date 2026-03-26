@@ -1,0 +1,586 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    :root {
+        --glass-bg: rgba(30, 41, 59, 0.7);
+    }
+
+    .dashboard-container {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 2.5rem;
+        animation: slideUp 0.6s ease-out;
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .welcome-header {
+        margin-bottom: 3rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .welcome-header h1 {
+        font-size: 2.75rem;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #38bdf8, #818cf8);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Stats Overview Grid */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .stat-box {
+        padding: 1.75rem;
+        border-radius: 1rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-box i {
+        position: absolute;
+        right: -10px;
+        bottom: -10px;
+        font-size: 5rem;
+        opacity: 0.1;
+        transform: rotate(-10deg);
+        color: var(--primary);
+    }
+
+    .stat-box .label { 
+        font-size: 0.85rem; 
+        font-weight: 600; 
+        color: var(--text-muted); 
+        text-transform: uppercase; 
+        letter-spacing: 0.1em;
+    }
+    
+    .stat-box .value { 
+        font-size: 2.5rem; 
+        font-weight: 800; 
+        margin: 0.75rem 0; 
+        color: var(--text-main);
+    }
+
+    /* Medicine Cards */
+    .schedule-section h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .med-group-card {
+        background: var(--card-bg);
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--border);
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .med-group-card:hover {
+        transform: scale(1.02);
+        box-shadow: var(--shadow);
+    }
+
+    .med-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .med-info h3 { font-size: 1.5rem; margin-bottom: 0.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+    .med-info p { color: var(--text-muted); font-size: 0.95rem; }
+
+    .timings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .timing-slot {
+        background: var(--card-secondary);
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        transition: 0.2s;
+    }
+
+    .slot-time {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .slot-time span { font-weight: 700; font-size: 1.1rem; }
+
+    .slot-actions { display: flex; gap: 0.75rem; }
+
+    .btn-circle {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        color: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .btn-take { background: #22c55e !important; }
+    .btn-miss { background: #ef4444 !important; }
+    
+    .btn-circle:hover:not(:disabled) { 
+        transform: scale(1.15); 
+        box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+    }
+    
+    .btn-circle:active:not(:disabled) {
+        transform: scale(0.9);
+    }
+
+    .btn-circle:disabled { 
+        opacity: 0.1; 
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
+    .info-btn {
+        position: absolute;
+        top: -0.5rem;
+        right: -0.5rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        transition: all 0.3s;
+        background: rgba(0,0,0,0.05);
+    }
+
+    [data-theme="dark"] .info-btn {
+        background: rgba(255,255,255,0.1);
+    }
+
+    .info-btn:hover {
+        transform: rotate(15deg) scale(1.1);
+        background: var(--primary);
+        color: white;
+    }
+
+    /* Right Sidebar: Weekly Insights */
+    .sidebar-inner {
+        position: sticky;
+        top: 6rem;
+    }
+
+    .report-card {
+        padding: 2.5rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+    }
+
+    .report-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+
+    /* Premium Progress Circle */
+    .circle-container {
+        position: relative;
+        width: 160px;
+        height: 160px;
+        margin: 0 auto;
+    }
+
+    svg.progress-ring {
+        transform: rotate(-90deg);
+    }
+
+    .progress-ring__circle {
+        transition: stroke-dashoffset 0.8s ease-in-out;
+        stroke: var(--primary);
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.5));
+    }
+
+    .adherence-percentage {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 2.25rem;
+        font-weight: 800;
+        color: var(--text-main);
+    }
+
+    .weekly-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .weekly-day {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: var(--card-secondary);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+    }
+
+    .status-pill {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+        font-weight: 700;
+    }
+    .status-taken { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+    .status-missed { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+    .status-pending { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); }
+
+    .med-completed {
+        opacity: 0.6;
+        filter: grayscale(0.5);
+    }
+
+    .highlight-reminder {
+        border: 2px solid var(--primary) !important;
+        animation: pulseReminder 2s infinite;
+    }
+
+    @keyframes pulseReminder {
+        0% { border-color: var(--primary); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
+        70% { border-color: var(--primary); box-shadow: 0 0 0 10px rgba(56, 189, 248, 0); }
+        100% { border-color: var(--primary); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+    }
+
+    @media (max-width: 1024px) {
+        .dashboard-container { grid-template-columns: 1fr; }
+        .sidebar-inner { position: static; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-header">
+    <div>
+        <h1>Welcome back, {{ current_user.username }}</h1>
+        <p style="color: var(--text-muted); font-size: 1.1rem; margin-top: 0.5rem;">
+            You have <span id="pending-count" style="font-weight:700; color:var(--text-main);">...</span> doses remaining today.
+        </p>
+    </div>
+</div>
+
+<div class="dashboard-container">
+    <div class="main-content">
+        <div class="stats-row">
+            <div class="stat-box">
+                <span class="label">Consistency Score</span>
+                <div class="value" id="trust-val">0%</div>
+                <div style="height: 8px; background: var(--card-secondary); border-radius: 4px; overflow: hidden; border: 1px solid var(--border);">
+                    <div id="trust-fill" style="height: 100%; background: linear-gradient(90deg, #38bdf8, #818cf8); width: 0%; transition: 1.5s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                </div>
+                <i data-lucide="shield-check"></i>
+            </div>
+            <div class="stat-box">
+                <span class="label">Adherence Streak</span>
+                <div class="value" id="streak-val">0</div>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Consecutive days reached</p>
+                <i data-lucide="flame"></i>
+            </div>
+        </div>
+
+        <div class="schedule-section">
+            <h2>
+                <i data-lucide="clock" style="color: var(--primary);"></i>
+                Daily Schedule
+            </h2>
+            <div id="med-groups-list">
+                <!-- Grouped medicines injected here -->
+            </div>
+
+            <div id="completed-section" style="display: none; margin-top: 4rem;">
+                <h2 style="color: var(--text-muted); font-size: 1.25rem;">
+                    <i data-lucide="check-circle" style="color: var(--success);"></i>
+                    Completed Medications
+                </h2>
+                <div id="completed-list" class="weekly-list">
+                    <!-- Completed meds injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <div class="sidebar-inner">
+            <div class="report-card">
+                <div class="report-header">
+                    <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Weekly Performance</h3>
+                    
+                    <div class="circle-container">
+                        <svg class="progress-ring" width="160" height="160">
+                            <circle class="progress-ring__background" stroke="var(--border)" stroke-width="12" fill="transparent" r="70" cx="80" cy="80"/>
+                            <circle id="progress-indicator" class="progress-ring__circle" stroke-width="12" fill="transparent" r="70" cx="80" cy="80" 
+                                    stroke-dasharray="439.82" stroke-dashoffset="439.82"/>
+                        </svg>
+                        <div class="adherence-percentage" id="weekly-adherence-pct">0%</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2.5rem; text-align: center;">
+                    <div style="background: var(--card-secondary); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                        <div style="font-size: 1.5rem; font-weight: 800; color: var(--success);" id="report-taken">0</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 0.2rem;">Taken</div>
+                    </div>
+                    <div style="background: var(--card-secondary); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                        <div style="font-size: 1.5rem; font-weight: 800; color: var(--danger);" id="report-missed">0</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 0.2rem;">Missed</div>
+                    </div>
+                </div>
+
+                <div class="weekly-list" id="weekly-days-list">
+                    <!-- Weekly breakdown days -->
+                </div>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<script>
+    function setProgress(percent) {
+        const circle = document.getElementById('progress-indicator');
+        const radius = circle.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI;
+        const offset = circumference - (percent / 100 * circumference);
+        circle.style.strokeDashoffset = offset;
+    }
+
+    function updateStats() {
+        fetch('/api/stats')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('trust-val').textContent = Math.round(data.trust_score) + '%';
+                document.getElementById('trust-fill').style.width = data.trust_score + '%';
+                document.getElementById('streak-val').textContent = data.streak;
+            });
+        
+        fetch('/api/report/weekly')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('weekly-adherence-pct').textContent = data.adherence_pct + '%';
+                setProgress(data.adherence_pct);
+                document.getElementById('report-taken').textContent = data.total_taken;
+                document.getElementById('report-missed').textContent = data.total_missed;
+                
+                const list = document.getElementById('weekly-days-list');
+                list.innerHTML = '';
+                data.days.forEach(day => {
+                    list.innerHTML += `
+                        <div class="weekly-day">
+                            <span style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">${day.name}</span>
+                            <span style="font-size: 1.1rem; letter-spacing: 2px;">${day.summary_icons || '—'}</span>
+                        </div>
+                    `;
+                });
+            });
+    }
+
+    function loadMeds() {
+        // Load active items
+        fetch('/api/doses/today')
+            .then(res => res.json())
+            .then(doses => {
+                const container = document.getElementById('med-groups-list');
+                container.innerHTML = '';
+                
+                if (doses.length === 0) {
+                    container.innerHTML = `<div class="card" style="text-align:center; padding: 5rem; color: var(--text-muted); border-style: dashed;">
+                        <i data-lucide="clipboard-list" size="56" style="margin-bottom: 1.5rem; opacity: 0.1;"></i>
+                        <p style="font-size: 1.1rem;">You're all caught up for today.<br><a href="/medications" style="color: var(--primary); font-weight: 700; text-decoration: none;">Manage Prescriptions</a></p>
+                    </div>`;
+                    lucide.createIcons();
+                    document.getElementById('pending-count').textContent = '0';
+                } else {
+                    const groups = {};
+                    let pendingCount = 0;
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const currentMin = now.getMinutes();
+
+                    doses.forEach(d => {
+                        if (!groups[d.med_id]) groups[d.med_id] = { name: d.med_name, dosage: d.dosage, slots: [], isDue: false };
+                        groups[d.med_id].slots.push(d);
+                        if (d.status === 'PENDING') {
+                            pendingCount++;
+                            const [h, m] = d.scheduled_time.split(':').map(Number);
+                            const isPast = (currentHour > h) || (currentHour === h && currentMin >= m);
+                            const isSoon = !isPast && (h - currentHour === 0 || (h - currentHour === 1 && m <= currentMin));
+                            if (isPast || isSoon) groups[d.med_id].isDue = true;
+                        }
+                    });
+
+                    document.getElementById('pending-count').textContent = pendingCount;
+
+                    Object.keys(groups).forEach(medId => {
+                        const group = groups[medId];
+                        const card = document.createElement('div');
+                        card.className = `med-group-card ${group.isDue ? 'highlight-reminder' : ''}`;
+                        card.dataset.medId = medId;
+                        
+                        let slotsHtml = '';
+                        group.slots.forEach(slot => {
+                            const isPending = slot.status === 'PENDING';
+                            slotsHtml += `
+                                <div class="timing-slot">
+                                    <div class="slot-time">
+                                        <span>${slot.scheduled_time}</span>
+                                        <span class="status-pill status-${slot.status.toLowerCase()}">${slot.status}</span>
+                                    </div>
+                                    <div class="slot-actions">
+                                        <button onclick="recordDose(${slot.id}, 'TAKEN')" class="btn-circle btn-take" title="Mark as Taken" ${!isPending ? 'disabled' : ''}>
+                                            <i data-lucide="check" size="20"></i>
+                                        </button>
+                                        <button onclick="recordDose(${slot.id}, 'MISSED')" class="btn-circle btn-miss" title="Mark as Missed" ${!isPending ? 'disabled' : ''}>
+                                            <i data-lucide="x" size="20"></i>
+                                        </button>
+                                    </div>
+                                    ${slot.taken_time ? `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top:0.75rem;">Recorded at ${slot.taken_time}</div>` : ''}
+                                </div>
+                            `;
+                        });
+
+                        card.innerHTML = `
+                            <div class="med-header">
+                                <div class="med-info">
+                                    <h3>💊 ${group.name}</h3>
+                                    <p>${group.dosage}</p>
+                                </div>
+                                <div class="info-btn">
+                                    <i data-lucide="info" size="20"></i>
+                                </div>
+                            </div>
+                            <div class="timings-grid">
+                                ${slotsHtml}
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                    lucide.createIcons();
+                    
+                    // Sync with Flutter for native scheduling
+                    if (typeof syncToFlutter === 'function') syncToFlutter(doses);
+                }
+            });
+
+        // Load completed items
+        fetch('/api/medications/completed')
+            .then(res => res.json())
+            .then(completed => {
+                const section = document.getElementById('completed-section');
+                const list = document.getElementById('completed-list');
+                list.innerHTML = '';
+                
+                if (completed.length > 0) {
+                    section.style.display = 'block';
+                    completed.forEach(m => {
+                        list.innerHTML += `
+                            <div class="weekly-day med-completed">
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <i data-lucide="check-circle-2" style="color: var(--success);"></i>
+                                    <div>
+                                        <div style="font-weight: 800; color: var(--text-main);">${m.name}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">${m.dosage} • Course Complete</div>
+                                    </div>
+                                </div>
+                                <span class="status-pill status-taken">DONE</span>
+                            </div>
+                        `;
+                    });
+                    lucide.createIcons();
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+    }
+
+    function recordDose(eventId, status) {
+        if (window.FlutterNotifications) {
+            // Tell Flutter to capture accurate device time
+            window.FlutterNotifications.postMessage(JSON.stringify({
+                type: 'get_flutter_time',
+                event_id: eventId,
+                status: status
+            }));
+        } else {
+            // Fallback 
+            recordDoseAuth(eventId, status, new Date().toISOString());
+        }
+    }
+
+    // This gets called natively by Flutter
+    function recordDoseAuth(eventId, status, flutterTime) {
+        const url = status === 'TAKEN' ? '/mark_taken' : '/mark_missed';
+        fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({event_id: eventId, taken_time: flutterTime})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                updateStats();
+                loadMeds();
+                if (status === 'TAKEN' || data.completed) {
+                    showToast(data.message || 'Marked as Taken', 'remind');
+                } else if (status === 'MISSED') {
+                    showToast('Marked as Missed', 'missed');
+                }
+            } else {
+                showToast(data.message || 'Error updating dose', 'missed');
+            }
+        }).catch(err => {
+            console.error('Record dose error:', err);
+            showToast('Connection error', 'missed');
+        });
+    }
+
+    // Initial Load
+    updateStats();
+    loadMeds();
+
+    // Pull standard alerts (like missed yesterday)
+    fetch('/api/alerts')
+        .then(res => res.json())
+        .then(alerts => alerts.forEach(a => showToast(a.message, 'missed')));
+
+</script>
+{% endblock %}

@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    .med-form-container {
+        display: grid;
+        grid-template-columns: 400px 1fr;
+        gap: 2.5rem;
+        align-items: start;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.6rem;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--text-main);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    input {
+        width: 100%;
+        padding: 0.85rem 1.25rem;
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        font-size: 1rem;
+        background: var(--card-secondary);
+        color: var(--text-main);
+        transition: all 0.3s ease;
+    }
+
+    input:focus {
+        border-color: var(--primary);
+        background: var(--background);
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
+    }
+
+    .timing-row {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    /* Med Cards */
+    .med-card {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .med-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow);
+    }
+
+    .med-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .med-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-icon {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .btn-icon:hover {
+        background: var(--background);
+        color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .btn-icon.delete:hover {
+        color: var(--secondary);
+        border-color: var(--secondary);
+    }
+
+    .timing-chip {
+        background: var(--card-secondary);
+        padding: 0.5rem 0.85rem;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--primary);
+        border: 1px solid var(--border);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 900px) {
+        .med-form-container { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="med-form-container">
+    <div class="card">
+        <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+            <i data-lucide="plus-circle" class="text-primary"></i>
+            <span id="form-title">New Prescription</span>
+        </h2>
+        
+        <form id="med-form">
+            <div class="form-group">
+                <label>Medicine Name</label>
+                <input type="text" id="name" placeholder="e.g. Dolo 650" required>
+            </div>
+            <div class="form-group">
+                <label>Dosage / Strength</label>
+                <input type="text" id="dosage" placeholder="e.g. 100mg" required>
+            </div>
+            <div class="form-group">
+                <label>Treatment Duration (Days)</label>
+                <input type="number" id="duration" value="7" min="1" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Scheduled Timings</label>
+                <div id="timings-list">
+                    <div class="timing-row">
+                        <input type="time" class="timing-input" required>
+                    </div>
+                </div>
+                <button type="button" onclick="addTimingField()" class="btn btn-outline" style="width: 100%; justify-content: center; margin-top: 0.75rem;">
+                    <i data-lucide="plus" size="16"></i> Add Another Time
+                </button>
+            </div>
+
+            <button type="submit" id="submit-btn" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 1.5rem;">
+                Set Schedule
+            </button>
+            <button type="button" id="cancel-edit" onclick="resetForm()" class="btn btn-outline" style="width: 100%; justify-content: center; margin-top: 0.75rem; display: none;">
+                Cancel Editing
+            </button>
+        </form>
+    </div>
+
+    <div>
+        <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+            <i data-lucide="list"></i>
+            Active Prescriptions
+        </h2>
+        <div id="med-list" style="display: grid; gap: 1.5rem;">
+            <!-- Medications injected here -->
+        </div>
+    </div>
+</div>
+
+<script>
+    let editingMedId = null;
+
+    function addTimingField(value = "") {
+        const div = document.createElement('div');
+        div.className = 'timing-row animate-fade-in';
+        div.innerHTML = `
+            <input type="time" class="timing-input" value="${value}" required>
+            <button type="button" onclick="this.parentElement.remove()" class="btn btn-outline" style="padding: 0.75rem;">
+                <i data-lucide="trash-2" size="16"></i>
+            </button>
+        `;
+        document.getElementById('timings-list').appendChild(div);
+        lucide.createIcons();
+    }
+
+    document.getElementById('med-form').onsubmit = (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('name').value.trim();
+        const dosage = document.getElementById('dosage').value.trim();
+        const duration = document.getElementById('duration').value;
+        const timings = Array.from(document.querySelectorAll('.timing-input'))
+            .map(input => input.value.trim())
+            .filter(v => v);
+
+        if (!name || !dosage || !duration || timings.length === 0) {
+            showToast('⚠️ Please provide medicine, dosage, duration, and at least one time.', 'missed');
+            return;
+        }
+
+        const data = { name, dosage, duration, timings };
+        const url = editingMedId ? `/api/medications/${editingMedId}` : '/add_medicine';
+        const method = editingMedId ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json().then(body => ({ status: res.status, body })))
+        .then(({ status, body }) => {
+            if (status >= 400 || body.status === 'error') {
+                showToast(`❌ ${body.message || 'Could not save prescription.'}`, 'missed');
+                return;
+            }
+            resetForm();
+            loadMedications();
+            showToast(`✅ Prescription ${editingMedId ? 'updated' : 'added'} successfully!`, 'remind');
+        })
+        .catch(err => {
+            console.error('Medicine form submission error', err);
+            showToast('❌ Problem saving schedule. See console for details.', 'missed');
+        });
+    };
+
+    function resetForm() {
+        editingMedId = null;
+        document.getElementById('med-form').reset();
+        document.getElementById('form-title').textContent = "New Prescription";
+        document.getElementById('submit-btn').textContent = "Set Schedule";
+        document.getElementById('cancel-edit').style.display = 'none';
+        document.getElementById('timings-list').innerHTML = `
+            <div class="timing-row">
+                <input type="time" class="timing-input" required>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    function editMed(med) {
+        editingMedId = med.id;
+        document.getElementById('form-title').textContent = "Edit Prescription";
+        document.getElementById('submit-btn').textContent = "Update Schedule";
+        document.getElementById('cancel-edit').style.display = 'flex';
+        
+        document.getElementById('name').value = med.name;
+        document.getElementById('dosage').value = med.dosage;
+        document.getElementById('duration').value = med.duration;
+        
+        const list = document.getElementById('timings-list');
+        list.innerHTML = '';
+        med.timings.forEach(t => addTimingField(t));
+    }
+
+    function deleteMed(medId) {
+        if (confirm('Are you sure you want to delete this medication? All tracking history will be removed.')) {
+            fetch(`/api/medications/${medId}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        loadMedications();
+                        showToast('🗑️ Prescription removed.', 'missed');
+                    }
+                });
+        }
+    }
+
+    function loadMedications() {
+        fetch('/api/medications')
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('med-list');
+                list.innerHTML = '';
+                
+                if (data.length === 0) {
+                    list.innerHTML = `<div class="card" style="text-align:center; padding: 4rem; color: var(--text-muted); border-style: dashed;">
+                        Your prescription cabinet is empty.
+                    </div>`;
+                    return;
+                }
+
+                data.forEach(m => {
+                    const card = document.createElement('div');
+                    card.className = 'card med-card animate-fade-in';
+                    
+                    const medJson = JSON.stringify(m).replace(/"/g, '&quot;');
+                    
+                    card.innerHTML = `
+                        <div class="med-info">
+                            <div>
+                                <h3 style="font-size: 1.35rem; margin-bottom: 0.25rem;">${m.name}</h3>
+                                <p style="color: var(--text-muted); font-size: 0.95rem;">
+                                    <b>${m.dosage}</b> • ${m.duration} day treatment
+                                </p>
+                            </div>
+                            <div class="med-actions">
+                                <button onclick="editMed(${medJson})" class="btn-icon" title="Edit">
+                                    <i data-lucide="edit-3" size="16"></i>
+                                </button>
+                                <button onclick="deleteMed(${m.id})" class="btn-icon delete" title="Delete">
+                                    <i data-lucide="trash-2" size="16"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <p style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase;">Daily Protocol</p>
+                            ${m.timings.map(t => `
+                                <span class="timing-chip">
+                                    <i data-lucide="clock" size="14"></i> ${t}
+                                </span>
+                            `).join('')}
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+                lucide.createIcons();
+            });
+    }
+
+    loadMedications();
+</script>
+{% endblock %}
