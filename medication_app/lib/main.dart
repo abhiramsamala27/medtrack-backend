@@ -16,6 +16,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 }
 
+const String _flaskAppUrl = "https://medtrack-backend-zqbl.onrender.com";
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -25,9 +27,9 @@ void main() async {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
     await messaging.requestPermission(alert: true, badge: true, sound: true);
     String? token = await messaging.getToken();
-    debugPrint("FCM Token: \$token");
+    debugPrint("FCM Token: $token");
   } catch (e) {
-    debugPrint("Firebase initialization failed: \$e");
+    debugPrint("Firebase initialization failed: $e");
   }
 
   await NotificationService().init();
@@ -113,8 +115,6 @@ class _WebViewPageState extends State<WebViewPage> {
   String? _errorMessage;
   bool _notificationsEnabled = false;
 
-  final String _flaskAppUrl = "https://medtrack-backend-zqbl.onrender.com"; 
-
   @override
   void initState() {
     super.initState();
@@ -144,7 +144,7 @@ class _WebViewPageState extends State<WebViewPage> {
       );
       
     // Route to Dashboard if logged in, otherwise Login Page
-    final String targetUrl = widget.initialLoggedIn ? "\$_flaskAppUrl/dashboard" : "\$_flaskAppUrl/login";
+    final String targetUrl = widget.initialLoggedIn ? "$_flaskAppUrl/dashboard" : "$_flaskAppUrl/login";
     _controller.loadRequest(Uri.parse(targetUrl));
     
     // Fetch and schedule notifications
@@ -167,7 +167,7 @@ class _WebViewPageState extends State<WebViewPage> {
     
     // Attempt clear webview cookies/session and reload
     await _controller.clearCache();
-    await _controller.loadRequest(Uri.parse("\$_flaskAppUrl/logout"));
+    await _controller.loadRequest(Uri.parse("$_flaskAppUrl/logout"));
     Navigator.pop(context); // close drawer
   }
 
@@ -197,10 +197,10 @@ class _WebViewPageState extends State<WebViewPage> {
         final status = data['status']; // 'TAKEN' or 'MISSED'
         
         // Pass the flutter's DateTime timestamp into the WebView via JS
-        _controller.runJavaScript("recordDoseAuth('\$eventId', '\$status', '\${now.toIso8601String()}');");
+        _controller.runJavaScript("recordDoseAuth('$eventId', '$status', '${now.toIso8601String()}');");
       }
     } catch (e) {
-      debugPrint("Error parsing JS message: \$e");
+      debugPrint("Error parsing JS message: $e");
     }
   }
 

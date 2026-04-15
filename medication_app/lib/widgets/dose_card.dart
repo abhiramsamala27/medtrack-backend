@@ -12,10 +12,33 @@ class DoseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final medProvider = Provider.of<MedicationProvider>(context, listen: false);
-    final timeStr = DateFormat('hh:mm a').format(dose.scheduledTime);
-    final isPending = dose.status == 'PENDING';
-    final isTaken = dose.status == 'TAKEN';
-    final isMissed = dose.status == 'MISSED';
+    
+    String calcStatus = dose.status;
+    if (dose.status == 'PENDING') {
+      final now = DateTime.now();
+      // Ensure properly converted to local time
+      final scheduledTime = dose.scheduledTime.isUtc ? dose.scheduledTime.toLocal() : dose.scheduledTime;
+
+      if (now.isBefore(scheduledTime)) {
+        calcStatus = "Pending";
+      } else if (now.isAfter(scheduledTime) && now.isBefore(scheduledTime.add(const Duration(minutes: 30)))) {
+        calcStatus = "Due";
+      } else {
+        calcStatus = "Missed";
+      }
+    } else {
+      calcStatus = dose.status == 'TAKEN' ? 'Taken' : 'Missed';
+    }
+
+    final scheduledTimeLocal = dose.scheduledTime.isUtc ? dose.scheduledTime.toLocal() : dose.scheduledTime;
+    final timeStr = DateFormat('hh:mm a').format(scheduledTimeLocal);
+    
+    final isPending = calcStatus == 'Pending';
+    final isDue = calcStatus == 'Due';
+    final isTaken = calcStatus == 'Taken';
+    final isMissed = calcStatus == 'Missed';
+
+    final bool showActions = isPending || isDue;
 
     Color cardColor = isTaken ? const Color(0xFFF0FDF4) : (isMissed ? const Color(0xFFFEF2F2) : Colors.white);
     Color borderColor = isTaken ? const Color(0xFFDCFCE7) : (isMissed ? const Color(0xFFFEE2E2) : Colors.grey.withOpacity(0.1));
@@ -27,7 +50,7 @@ class DoseCard extends StatelessWidget {
         color: cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: borderColor),
-        boxShadow: isPending ? [
+        boxShadow: showActions ? [
           BoxShadow(
             color: accentColor.withOpacity(0.04),
             blurRadius: 15,
@@ -55,7 +78,7 @@ class DoseCard extends StatelessWidget {
               ],
             ),
           ),
-          if (isPending) ...[
+          if (showActions) ...[
             IconButton.filled(
               onPressed: () => medProvider.markDoseTaken(dose.id!), 
               icon: const Icon(Icons.check_rounded, size: 20),
@@ -75,7 +98,7 @@ class DoseCard extends StatelessWidget {
                  borderRadius: BorderRadius.circular(12),
                ),
                child: Text(
-                 dose.status,
+                 calcStatus,
                  style: TextStyle(color: accentColor, fontWeight: FontWeight.w700, fontSize: 11),
                ),
              ),

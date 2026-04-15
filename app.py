@@ -191,6 +191,11 @@ def status():
         "database_type": "postgres" if "postgresql" in app.config['SQLALCHEMY_DATABASE_URI'] else "sqlite"
     })
 
+@app.route('/ping')
+def ping():
+    """Lightweight endpoint for keep-alive services to prevent Render from sleeping."""
+    return "pong", 200
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -383,8 +388,14 @@ def api_stats():
 @app.route('/api/doses/today')
 @login_required
 def api_today_doses():
-    today = datetime.now().date()
-    now_dt = datetime.now()
+    local_time_str = request.args.get('local_time')
+    if local_time_str:
+        now_dt = datetime.strptime(local_time_str, "%Y-%m-%dT%H:%M")
+        today = now_dt.date()
+    else:
+        now_dt = datetime.now()
+        today = datetime.now().date()
+        
     active_meds = Medication.query.filter_by(user_id=current_user.id, status='active').all()
     
     for med in active_meds:
@@ -408,9 +419,11 @@ def api_today_doses():
                 
             # Auto-mark Missed if > 1 hour late
             if exists.status == 'PENDING' and now_dt > (sched_dt + timedelta(hours=1)):
-                exists.status = 'MISSED'
-                exists.trust_impact = -1.0
-                current_user.streak = 0
+                # Do not penalize if it's the very first day of the medication!
+                if med.start_date != today:
+                    exists.status = 'MISSED'
+                    exists.trust_impact = -1.0
+                    current_user.streak = 0
     
     db.session.commit()
     

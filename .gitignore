@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+instance/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Flask
+instance/
+.webassets-cache
+
+# Database
+*.db
+*.sqlite3
+
+# VS Code
+.vscode/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Android
+.gradle/
+local.properties
+*.keystore
+*.jks
+app/build/
+medication_app/build/
+medication_app/android/.gradle/
+medication_app/android/local.properties
+medication_app/android/app/build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Duplicate project folder
+medtrack-backend/

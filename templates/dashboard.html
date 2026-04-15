@@ -415,8 +415,16 @@
     }
 
     function loadMeds() {
+        const d = new Date();
+        const tzYear = d.getFullYear();
+        const tzMonth = (d.getMonth() + 1).toString().padStart(2, '0');
+        const tzDate = d.getDate().toString().padStart(2, '0');
+        const tzHour = d.getHours().toString().padStart(2, '0');
+        const tzMin = d.getMinutes().toString().padStart(2, '0');
+        const localTime = `${tzYear}-${tzMonth}-${tzDate}T${tzHour}:${tzMin}`;
+
         // Load active items
-        fetch('/api/doses/today')
+        fetch(`/api/doses/today?local_time=${localTime}`)
             .then(res => res.json())
             .then(doses => {
                 const container = document.getElementById('med-groups-list');

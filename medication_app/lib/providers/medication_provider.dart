@@ -69,6 +69,11 @@ class MedicationProvider with ChangeNotifier {
         );
 
         if (!exists) {
+          // DO NOT create a missing dose if the medication was just added AFTER the dose's time today.
+          if (schedTime.isBefore(med.startDate)) {
+            continue;
+          }
+
           await DatabaseHelper.instance.insertDose({
              'med_id': med.id,
              'scheduled_time': schedTime.toIso8601String(),

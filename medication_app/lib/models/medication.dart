@@ -25,7 +25,7 @@ class Medication {
       'name': name,
       'dosage': dosage,
       'duration_days': durationDays,
-      'start_date': DateFormat('yyyy-MM-dd').format(startDate),
+      'start_date': startDate.toIso8601String(),
       'status': status,
     };
   }
