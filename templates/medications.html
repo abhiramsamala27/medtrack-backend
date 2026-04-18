@@ -114,7 +114,38 @@
     @media (max-width: 900px) {
         .med-form-container { grid-template-columns: 1fr; }
     }
+
+    /* Web Scanner Modal */
+    #scanner-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.85);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+    }
+
+    #scanner-container {
+        width: 100%;
+        max-width: 500px;
+        background: var(--card-bg);
+        border-radius: 20px;
+        padding: 1.5rem;
+        position: relative;
+    }
+
+    #reader {
+        width: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+    }
 </style>
+<script src="https://unpkg.com/html5-qrcode"></script>
 {% endblock %}
 
 {% block content %}
@@ -175,6 +206,22 @@
         <div id="med-list" style="display: grid; gap: 1.5rem;">
             <!-- Medications injected here -->
         </div>
+    </div>
+</div>
+
+<!-- Web Scanner Modal -->
+<div id="scanner-modal">
+    <div id="scanner-container">
+        <h3 style="margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+            Scan Barcode
+            <button onclick="closeWebScanner()" class="btn-icon" style="border:none;">
+                <i data-lucide="x"></i>
+            </button>
+        </h3>
+        <div id="reader"></div>
+        <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+            Position the medicine barcode within the frame
+        </p>
     </div>
 </div>
 
@@ -328,11 +375,50 @@
             });
     }
 
+    let html5QrcodeScanner = null;
+
     function triggerScanner() {
         if (window.FlutterNotifications) {
             window.FlutterNotifications.postMessage(JSON.stringify({ type: "startBarcodeScan" }));
         } else {
-            showToast('⚠️ Scanner only available in mobile app.', 'missed');
+            startWebScanner();
+        }
+    }
+
+    function startWebScanner() {
+        document.getElementById('scanner-modal').style.display = 'flex';
+        
+        if (!html5QrcodeScanner) {
+            html5QrcodeScanner = new Html5Qrcode("reader");
+        }
+
+        const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+        html5QrcodeScanner.start(
+            { facingMode: "environment" }, 
+            config,
+            (decodedText) => {
+                // Success
+                closeWebScanner();
+                fetch(`/api/medicine/${decodedText}`)
+                    .then(res => res.json())
+                    .then(data => onBarcodeScanned(data))
+                    .catch(err => showToast('❌ Lookup failed', 'missed'));
+            },
+            (errorMessage) => {
+                // Ignore errors
+            }
+        ).catch(err => {
+            console.error(err);
+            showToast('⚠️ Camera access denied or not found.', 'missed');
+            closeWebScanner();
+        });
+    }
+
+    function closeWebScanner() {
+        document.getElementById('scanner-modal').style.display = 'none';
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.stop().catch(err => console.error(err));
         }
     }
 
@@ -342,13 +428,14 @@
             document.getElementById('dosage').value = data.dosage || '';
             showToast('✨ Medicine details captured!', 'remind');
             
-            // Highlight the fields
             const fields = ['name', 'dosage'];
             fields.forEach(id => {
                 const el = document.getElementById(id);
                 el.style.borderColor = 'var(--primary)';
                 setTimeout(() => el.style.borderColor = '', 2000);
             });
+        } else {
+            showToast('⚠️ Medicine not found in database.', 'missed');
         }
     }
 
