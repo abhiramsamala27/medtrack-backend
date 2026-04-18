@@ -125,6 +125,13 @@
             <span id="form-title">New Prescription</span>
         </h2>
         
+        <div style="margin-bottom: 1.5rem;">
+            <button type="button" onclick="triggerScanner()" class="btn btn-outline" style="width: 100%; gap: 0.75rem; border-style: dashed; border-width: 2px;">
+                <i data-lucide="scan-line" class="text-primary"></i>
+                Scan Medicine Barcode
+            </button>
+        </div>
+        
         <form id="med-form">
             <div class="form-group">
                 <label>Medicine Name</label>
@@ -319,6 +326,30 @@
                 });
                 lucide.createIcons();
             });
+    }
+
+    function triggerScanner() {
+        if (window.FlutterNotifications) {
+            window.FlutterNotifications.postMessage(JSON.stringify({ type: "startBarcodeScan" }));
+        } else {
+            showToast('⚠️ Scanner only available in mobile app.', 'missed');
+        }
+    }
+
+    function onBarcodeScanned(data) {
+        if (data.status === 'success') {
+            document.getElementById('name').value = data.name || '';
+            document.getElementById('dosage').value = data.dosage || '';
+            showToast('✨ Medicine details captured!', 'remind');
+            
+            // Highlight the fields
+            const fields = ['name', 'dosage'];
+            fields.forEach(id => {
+                const el = document.getElementById(id);
+                el.style.borderColor = 'var(--primary)';
+                setTimeout(() => el.style.borderColor = '', 2000);
+            });
+        }
     }
 
     loadMedications();

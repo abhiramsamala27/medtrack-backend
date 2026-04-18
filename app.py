@@ -108,6 +108,16 @@ class Adherence(db.Model):
     def __init__(self, **kwargs):
         super(Adherence, self).__init__(**kwargs)
 
+class BarcodeCache(db.Model):
+    __tablename__ = 'barcode_cache'
+    barcode = db.Column(db.String(50), primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    dosage = db.Column(db.String(100))
+    manufacturer = db.Column(db.String(200))
+
+    def __init__(self, **kwargs):
+        super(BarcodeCache, self).__init__(**kwargs)
+
 # --- Initialize Database ---
 with app.app_context():
     try:
@@ -584,6 +594,50 @@ def send_notification():
     except Exception as e:
         logger.warning(f"Error sending FCM message (Check credentials): {e}")
         return jsonify({"status": "error", "message": f"FCM Error: {str(e)}"}), 500
+
+@app.route('/api/medicine/<barcode>')
+@login_required
+def get_medicine_by_barcode(barcode):
+    """Fetch medicine details by barcode, check cache first then external API."""
+    try:
+        # Check cache
+        cached = BarcodeCache.query.filter_by(barcode=barcode).first()
+        if cached:
+            return jsonify({
+                "status": "success",
+                "name": cached.name,
+                "dosage": cached.dosage,
+                "manufacturer": cached.manufacturer
+            })
+        
+        # Try external API (OpenFoodFacts as a fallback/example)
+        import requests
+        resp = requests.get(f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json", timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('status') == 1:
+                product = data.get('product', {})
+                name = product.get('product_name', 'Unknown')
+                dosage = product.get('quantity', '') or product.get('serving_size', '')
+                manufacturer = product.get('brands', '')
+                
+                # Cache it
+                new_cache = BarcodeCache(barcode=barcode, name=name, dosage=dosage, manufacturer=manufacturer)
+                db.session.add(new_cache)
+                db.session.commit()
+                
+                return jsonify({
+                    "status": "success",
+                    "name": name,
+                    "dosage": dosage,
+                    "manufacturer": manufacturer
+                })
+        
+        return jsonify({"status": "error", "message": "Medicine not found in database."}), 404
+        
+    except Exception as e:
+        logger.error(f"Barcode lookup error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

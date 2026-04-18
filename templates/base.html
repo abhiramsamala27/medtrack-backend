@@ -430,8 +430,9 @@
         function syncToFlutter(doses) {
             if (window.FlutterNotifications) {
                 const schedule = doses.filter(d => d.status === 'PENDING').map(d => ({
-                    id: d.id,
+                    med_id: d.med_id,
                     name: d.med_name,
+                    dosage: d.dosage,
                     time: d.scheduled_time
                 }));
                 window.FlutterNotifications.postMessage(JSON.stringify({

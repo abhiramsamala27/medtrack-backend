@@ -14,8 +14,18 @@ class NotificationService {
 
   Future<void> init() async {
     tz.initializeTimeZones();
-    final String timeZoneName = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
+    String timeZoneName = await FlutterTimezone.getLocalTimezone();
+    
+    // Fix for older generic Android/Emulator issues where it returns Calcutta
+    if (timeZoneName == 'Asia/Calcutta') {
+      timeZoneName = 'Asia/Kolkata';
+    }
+    
+    try {
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+    } catch (e) {
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    }
     
     const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initSettings = InitializationSettings(android: androidSettings);
@@ -77,13 +87,14 @@ class NotificationService {
     final now = DateTime.now();
     DateTime scheduledDate = DateTime(now.year, now.month, now.day, hour, minute);
     
-    // If time has passed today, schedule for tomorrow (or just Skip if it's for initial sync)
-    // Actually, we usually schedule for today and the next few days.
-    // For now, let's schedule for today.
+    // If time has passed today (more than 2 minutes ago), skip scheduling.
+    // If it's within the last 2 minutes, schedule it immediately for now so it triggers.
     if (scheduledDate.isBefore(now)) {
-       // Optionally skip or schedule for tomorrow. 
-       // For this task, we want upcoming ones.
-       return;
+       if (now.difference(scheduledDate).inMinutes < 2) {
+           scheduledDate = now.add(const Duration(seconds: 5));
+       } else {
+           return;
+       }
     }
 
     // 1. Scheduled Reminder

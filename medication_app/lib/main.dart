@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'services/notification_service.dart';
 import 'services/database_helper.dart';
+import 'screens/scanner_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -143,6 +144,23 @@ class _WebViewPageState extends State<WebViewPage> {
         ),
       );
       
+    // --- AUTOMATED NOTIFICATION TEST ---
+    Future.delayed(const Duration(seconds: 8), () async {
+      // Create a test 5 seconds in the future
+      final testTime = DateTime.now().add(const Duration(seconds: 5));
+      String hr = testTime.hour.toString().padLeft(2, '0');
+      String mn = testTime.minute.toString().padLeft(2, '0');
+      
+      await NotificationService().scheduleMedicationNotifications(
+        medId: 9999,
+        name: "Antigravity Test Dose 🧪",
+        dosage: "1 Demonstration",
+        timeStr: "$hr:$mn",
+      );
+      debugPrint("====== AUTOMATED TEST SCHEDULED FOR $hr:$mn ======");
+    });
+    // -----------------------------------
+
     // Route to Dashboard if logged in, otherwise Login Page
     final String targetUrl = widget.initialLoggedIn ? "$_flaskAppUrl/dashboard" : "$_flaskAppUrl/login";
     _controller.loadRequest(Uri.parse(targetUrl));
@@ -198,6 +216,30 @@ class _WebViewPageState extends State<WebViewPage> {
         
         // Pass the flutter's DateTime timestamp into the WebView via JS
         _controller.runJavaScript("recordDoseAuth('$eventId', '$status', '${now.toIso8601String()}');");
+      } else if (type == 'sync') {
+        // Sync upcoming doses and schedule notifications
+        final List<dynamic> schedule = data['data'];
+        
+        // First cancel all previous to avoid duplicates
+        await NotificationService().cancelAll();
+        
+        for (var dose in schedule) {
+          await NotificationService().scheduleMedicationNotifications(
+            medId: dose['med_id'] is int ? dose['med_id'] : int.parse(dose['med_id'].toString()),
+            name: dose['name'].toString(),
+            dosage: dose['dosage'].toString(),
+            timeStr: dose['time'].toString(),
+          );
+        }
+      } else if (type == 'startBarcodeScan') {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ScannerScreen(backendUrl: _flaskAppUrl)),
+        );
+        if (result != null) {
+          final jsonStr = jsonEncode(result);
+          _controller.runJavaScript("onBarcodeScanned($jsonStr);");
+        }
       }
     } catch (e) {
       debugPrint("Error parsing JS message: $e");
