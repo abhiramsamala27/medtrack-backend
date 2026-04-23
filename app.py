@@ -609,7 +609,6 @@ def send_notification():
         return jsonify({"status": "error", "message": f"FCM Error: {str(e)}"}), 500
 
 @app.route('/api/medicine/<barcode>')
-@login_required
 def get_medicine_by_barcode(barcode):
     """Fetch medicine details by barcode, check cache first then external API."""
     try:
