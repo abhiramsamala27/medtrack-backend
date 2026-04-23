@@ -89,12 +89,9 @@ class NotificationService {
     
     // If time has passed today (more than 2 minutes ago), skip scheduling.
     // If it's within the last 2 minutes, schedule it immediately for now so it triggers.
+    // If time has passed today, schedule for tomorrow
     if (scheduledDate.isBefore(now)) {
-       if (now.difference(scheduledDate).inMinutes < 2) {
-           scheduledDate = now.add(const Duration(seconds: 5));
-       } else {
-           return;
-       }
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
     // 1. Scheduled Reminder

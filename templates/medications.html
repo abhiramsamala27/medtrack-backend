@@ -439,6 +439,24 @@
         }
     }
 
+    function syncWithFlutter() {
+        if (window.FlutterNotifications) {
+            fetch('/api/sync_schedule')
+                .then(res => res.json())
+                .then(data => {
+                    window.FlutterNotifications.postMessage(JSON.stringify({
+                        type: 'sync',
+                        data: data
+                    }));
+                })
+                .catch(err => console.error('Sync failed', err));
+        }
+    }
+
+    // Wrap loadMedications to ensure sync happens whenever the list is refreshed
+    const baseLoadMeds = loadMedications;
+    loadMedications = () => { baseLoadMeds(); syncWithFlutter(); };
+
     loadMedications();
 </script>
 {% endblock %}
