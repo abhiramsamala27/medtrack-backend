@@ -27,8 +27,11 @@ class NotificationService {
       tz.setLocalLocation(tz.getLocation('UTC'));
     }
     
-    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings initSettings = InitializationSettings(android: androidSettings);
+    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('app_icon');
+    // Also try ic_launcher package default as fallback
+    const InitializationSettings initSettings = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher')
+    );
 
     await _notificationsPlugin.initialize(
       initSettings,
