@@ -76,14 +76,14 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
         _showSuccess(data);
       } else {
         setState(() {
-          _errorMessage = "Medicine not found. Try OCR or Manual entry.";
+          _errorMessage = "Error ${response.statusCode}: Medicine not found.";
           _isLoading = false;
           _isScanning = true;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = "Network error. Please try again.";
+        _errorMessage = "Network Error: $e";
         _isLoading = false;
         _isScanning = true;
       });
