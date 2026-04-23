@@ -48,7 +48,7 @@ class _ScannerScreenState extends State<ScannerScreen> with SingleTickerProvider
   @override
   void dispose() {
     _scannerController.dispose();
-    _textRecognizer.dispose();
+    _textRecognizer.close();
     _animationController.dispose();
     super.dispose();
   }
