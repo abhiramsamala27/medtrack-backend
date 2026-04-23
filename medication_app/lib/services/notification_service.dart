@@ -80,6 +80,27 @@ class NotificationService {
     required String dosage,
     required String timeStr,
   }) async {
+    if (timeStr == "DEBUG_TEST") {
+      final now = DateTime.now().add(const Duration(seconds: 5));
+      await _notificationsPlugin.zonedSchedule(
+        9999,
+        '🚀 Test Notification',
+        'Your medication adherence engine is working perfectly!',
+        tz.TZDateTime.from(now, tz.local),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'med_reminders_v2',
+            'Medication Reminders',
+            importance: Importance.max,
+            priority: Priority.high,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      return;
+    }
+
     final parts = timeStr.split(':');
     final hour = int.parse(parts[0]);
     final minute = int.parse(parts[1]);
