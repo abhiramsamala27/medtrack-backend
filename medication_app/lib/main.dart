@@ -34,6 +34,8 @@ void main() async {
   }
 
   await NotificationService().init();
+  await NotificationService().requestPermission();
+  await NotificationService().requestExactAlarmPermission();
   runApp(const MedTrackApp());
 }
 
@@ -281,8 +283,10 @@ class _WebViewPageState extends State<WebViewPage> {
                 value: _notificationsEnabled,
                 onChanged: (bool value) async {
                   if (value) {
-                    bool granted = await NotificationService().requestPermission();
-                    setState(() { _notificationsEnabled = granted; });
+                   await NotificationService().init();
+    await NotificationService().requestPermission();
+    await NotificationService().requestExactAlarmPermission();
+                    setState(() { _notificationsEnabled = true; });
                   } else {
                     NotificationService().openSettings();
                   }

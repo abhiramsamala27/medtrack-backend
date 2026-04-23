@@ -72,6 +72,19 @@ class NotificationService {
 
   Future<void> openSettings() async {
     await AppSettings.openAppSettings(type: AppSettingsType.notification);
+    // On some devices, opening the specific Exact Alarm page is better
+    try {
+       await AppSettings.openAppSettings(type: AppSettingsType.alarm);
+    } catch (e) {
+       // fallback to general
+    }
+  }
+
+  Future<bool> requestExactAlarmPermission() async {
+    final status = await _notificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestExactAlarmsPermission();
+    return status ?? false;
   }
 
   Future<void> scheduleMedicationNotifications({
