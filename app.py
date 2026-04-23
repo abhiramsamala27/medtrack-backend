@@ -143,14 +143,16 @@ def login():
     if request.method == 'POST':
         try:
             data = request.get_json() or request.form
-            username = data.get('username')
-            password = data.get('password')
+            username = (data.get('username') or '').strip()
+            password = (data.get('password') or '').strip()
             
             user = User.query.filter_by(username=username).first()
             if user and check_password_hash(user.password, password):
                 login_user(user)
                 logger.info(f"User {username} logged in.")
                 return jsonify({"status": "success", "redirect": url_for('dashboard')})
+            
+            logger.warning(f"Failed login attempt for username: {username}")
             return jsonify({"status": "error", "message": "Invalid credentials"}), 401
         except Exception as e:
             logger.error(f"Login error: {e}")
@@ -162,8 +164,11 @@ def register():
     if request.method == 'POST':
         try:
             data = request.get_json() or request.form
-            username = data.get('username')
-            password = data.get('password')
+            username = (data.get('username') or '').strip()
+            password = (data.get('password') or '').strip()
+            
+            if not username or not password:
+                return jsonify({"status": "error", "message": "Username and password required"}), 400
             
             if User.query.filter_by(username=username).first():
                 return jsonify({"status": "error", "message": "User exists"}), 400
@@ -195,10 +200,18 @@ def index():
 @app.route('/status')
 def status():
     """Diagnostic endpoint to check backend health and Firebase status"""
+    users_count = 0
+    try:
+        users_count = User.query.count()
+    except:
+        pass
+        
     return jsonify({
         "server": "online",
         "firebase_initialized": len(firebase_admin._apps) > 0,
-        "database_type": "postgres" if "postgresql" in app.config['SQLALCHEMY_DATABASE_URI'] else "sqlite"
+        "database_type": "postgres" if "postgresql" in app.config['SQLALCHEMY_DATABASE_URI'] else "sqlite",
+        "users_count": users_count,
+        "is_using_env_db": os.environ.get('DATABASE_URL') is not None
     })
 
 @app.route('/ping')
